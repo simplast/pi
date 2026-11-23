@@ -212,6 +212,11 @@
       "type": "boolean",
       "default": false
     },
+    "groupToolCalls": {
+      "type": "boolean",
+      "description": "Collapse consecutive tool calls of one assistant turn into a single summary line.",
+      "default": true
+    },
     "showCacheMissNotices": {
       "type": "boolean",
       "description": "Show cache cost and provider recovery notices.",

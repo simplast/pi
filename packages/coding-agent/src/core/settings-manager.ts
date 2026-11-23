@@ -967,6 +967,10 @@ export class SettingsManager {
 		return this.settings.hideThinkingBlock ?? SETTINGS_DEFAULTS.hideThinkingBlock;
 	}
 
+	getGroupToolCalls(): boolean {
+		return this.settings.groupToolCalls ?? SETTINGS_DEFAULTS.groupToolCalls;
+	}
+
 	getShowCacheMissNotices(): boolean {
 		return this.settings.showCacheMissNotices ?? SETTINGS_DEFAULTS.showCacheMissNotices;
 	}
@@ -986,6 +990,12 @@ export class SettingsManager {
 	setHideThinkingBlock(hide: boolean): void {
 		this.globalSettings.hideThinkingBlock = hide;
 		this.markModified("hideThinkingBlock");
+		this.save();
+	}
+
+	setGroupToolCalls(group: boolean): void {
+		this.globalSettings.groupToolCalls = group;
+		this.markModified("groupToolCalls");
 		this.save();
 	}
 

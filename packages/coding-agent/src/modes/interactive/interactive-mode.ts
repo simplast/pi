@@ -188,6 +188,7 @@ import {
 import { ThemedText } from "./components/themed-text.ts";
 import { ThinkingSelectorComponent } from "./components/thinking-selector.ts";
 import { ToolExecutionComponent } from "./components/tool-execution.ts";
+import { appendToolToChat, forEachToolRow } from "./components/tool-run.ts";
 import { TreeSelectorComponent } from "./components/tree-selector.ts";
 import { TrustSelectorComponent } from "./components/trust-selector.ts";
 import { UserMessageComponent } from "./components/user-message.ts";
@@ -585,6 +586,7 @@ export class InteractiveMode {
 
 	// Thinking block visibility state
 	private hideThinkingBlock = false;
+	private groupToolCalls = true;
 	private outputPad = 1;
 	private readonly mermaidMarkdownTransformer: MarkdownTransformer = createMermaidMarkdownTransformer({
 		getMode: () => this.settingsManager.getMermaidRenderingMode(),
@@ -742,6 +744,7 @@ export class InteractiveMode {
 		// Load hide thinking block setting
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
 		this.outputPad = this.settingsManager.getOutputPad();
+		this.groupToolCalls = this.settingsManager.getGroupToolCalls();
 
 		// Register themes from resource loader and initialize
 		setRegisteredThemes(this.session.resourceLoader.getThemes().themes);
@@ -2244,6 +2247,7 @@ export class InteractiveMode {
 		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
 		this.footerDataProvider.setCwd(this.sessionManager.getCwd());
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
+		this.groupToolCalls = this.settingsManager.getGroupToolCalls();
 		this.outputPad = this.settingsManager.getOutputPad();
 		this.ui.setShowHardwareCursor(this.settingsManager.getShowHardwareCursor());
 		const clearOnShrink = this.settingsManager.getClearOnShrink();
@@ -3734,7 +3738,11 @@ export class InteractiveMode {
 									this.sessionManager.getCwd(),
 								);
 								component.setExpanded(this.toolOutputExpanded);
-								this.chatContainer.addChild(component);
+								appendToolToChat(this.chatContainer, component, {
+									group: this.groupToolCalls,
+									expanded: this.toolOutputExpanded,
+									outputPad: this.outputPad,
+								});
 								this.pendingTools.set(content.id, component);
 							} else {
 								const component = this.pendingTools.get(content.id);
@@ -3813,7 +3821,11 @@ export class InteractiveMode {
 						this.sessionManager.getCwd(),
 					);
 					component.setExpanded(this.toolOutputExpanded);
-					this.chatContainer.addChild(component);
+					appendToolToChat(this.chatContainer, component, {
+						group: this.groupToolCalls,
+						expanded: this.toolOutputExpanded,
+						outputPad: this.outputPad,
+					});
 					this.pendingTools.set(event.toolCallId, component);
 				}
 				component.markExecutionStarted();
@@ -4272,7 +4284,11 @@ export class InteractiveMode {
 							this.sessionManager.getCwd(),
 						);
 						component.setExpanded(this.toolOutputExpanded);
-						this.chatContainer.addChild(component);
+						appendToolToChat(this.chatContainer, component, {
+							group: this.groupToolCalls,
+							expanded: this.toolOutputExpanded,
+							outputPad: this.outputPad,
+						});
 
 						if (message.stopReason === "aborted" || message.stopReason === "error") {
 							let errorMessage: string;
@@ -5180,6 +5196,7 @@ export class InteractiveMode {
 					terminalTheme: this.themeController.getTerminalTheme(),
 					availableThemes: getAvailableThemes(),
 					hideThinkingBlock: this.hideThinkingBlock,
+					groupToolCalls: this.groupToolCalls,
 					mermaidRenderingMode: this.settingsManager.getMermaidRenderingMode(),
 					collapseChangelog: this.settingsManager.getCollapseChangelog(),
 					enableInstallTelemetry: this.settingsManager.getEnableInstallTelemetry(),
@@ -5208,19 +5225,11 @@ export class InteractiveMode {
 					},
 					onShowImagesChange: (enabled) => {
 						this.settingsManager.setShowImages(enabled);
-						for (const child of this.chatContainer.children) {
-							if (child instanceof ToolExecutionComponent) {
-								child.setShowImages(enabled);
-							}
-						}
+						forEachToolRow(this.chatContainer, (component) => component.setShowImages(enabled));
 					},
 					onImageWidthCellsChange: (width) => {
 						this.settingsManager.setImageWidthCells(width);
-						for (const child of this.chatContainer.children) {
-							if (child instanceof ToolExecutionComponent) {
-								child.setImageWidthCells(width);
-							}
-						}
+						forEachToolRow(this.chatContainer, (component) => component.setImageWidthCells(width));
 					},
 					onAutoResizeImagesChange: (enabled) => {
 						this.settingsManager.setImageAutoResize(enabled);
@@ -5284,6 +5293,12 @@ export class InteractiveMode {
 						this.hideThinkingBlock = hidden;
 						this.settingsManager.setHideThinkingBlock(hidden);
 						this.updateThinkingBlockVisibility();
+					},
+					onGroupToolCallsChange: (grouped) => {
+						this.groupToolCalls = grouped;
+						this.settingsManager.setGroupToolCalls(grouped);
+						this.rebuildChatFromMessages();
+						this.ui.requestRender();
 					},
 					onMermaidRenderingModeChange: (mode) => {
 						this.settingsManager.setMermaidRenderingMode(mode);

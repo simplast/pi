@@ -213,6 +213,25 @@ export class ToolExecutionComponent extends Container {
 		this.updateDisplay();
 	}
 
+	/** Name of the tool this row renders, for summaries that group several rows. */
+	getToolName(): string {
+		return this.toolName;
+	}
+
+	/** Still executing, including argument streaming before the call starts. */
+	isRunning(): boolean {
+		return this.isPartial;
+	}
+
+	hasError(): boolean {
+		return this.result?.isError === true;
+	}
+
+	/** Image results stay visible when a group collapses, so the group checks for them. */
+	hasImages(): boolean {
+		return this.imageComponents.length > 0;
+	}
+
 	setOutputPad(outputPad: number): void {
 		this.outputPad = outputPad;
 		this.updateDisplay();
